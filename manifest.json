@@ -1,12 +1,12 @@
 {
   "name": "Demo tarjeta",
-  "short_name": "short name",
+  "short_name": "demo tarjeta",
   "theme_color": "#fff",
   "background_color": "#fff",
   "display": "browser",
   "orientation": "portrait",
-  "scope": "/",
-  "start_url": "/",
+  "scope": "/demo-tarjeta/",
+  "start_url": "/demo-tarjeta/",
   "icons": [
     {
       "src": "images/icons/icon-72x72.png",
