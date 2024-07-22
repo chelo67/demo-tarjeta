@@ -1,51 +1,47 @@
-//asignar un nombre y versión al cache
-const CACHE_NAME = 'xamplepwa',
-    urlsToCache = [
-        '.',
-        './index.html',
-    ]
-//durante la fase de instalación, generalmente se almacena en caché los activos estáticos
-self.addEventListener('install', e => {
-    e.waitUntil(
-        caches.open(CACHE_NAME)
-            .then(cache => {
-                return cache.addAll(urlsToCache)
-                    .then(() => self.skipWaiting())
-            })
-            .catch(err => console.log('Falló registro de cache', err))
-    )
-})
-//una vez que se instala el SW, se activa y busca los recursos para hacer que funcione sin conexión
-self.addEventListener('activate', e => {
-    const cacheWhitelist = [CACHE_NAME]
-    e.waitUntil(
-        caches.keys()
-            .then(cacheNames => {
-                return Promise.all(
-                    cacheNames.map(cacheName => {
-                        //Eliminamos lo que ya no se necesita en cache
-                        if (cacheWhitelist.indexOf(cacheName) === -1) {
-                            return caches.delete(cacheName)
-                        }
-                    })
-                )
-            })
-            // Le indica al SW activar el cache actual
-            .then(() => self.clients.claim())
-    )
-})
-//cuando el navegador recupera una url
-self.addEventListener('fetch', e => {
-    //Responder ya sea con el objeto en caché o continuar y buscar la url real
-    e.respondWith(
-        caches.match(e.request)
-            .then(res => {
-                if (res) {
-                    //recuperar del cache
-                    return res
-                }
-                //recuperar de la petición a la url
-                return fetch(e.request)
-            })
-    )
-})
+// This is the "Offline page" service worker
+
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
+
+const CACHE = "pwabuilder-page";
+
+// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
+const offlineFallbackPage = "ToDo-replace-this-name.html";
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
+self.addEventListener('install', async (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.add(offlineFallbackPage))
+  );
+});
+
+if (workbox.navigationPreload.isSupported()) {
+  workbox.navigationPreload.enable();
+}
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const preloadResp = await event.preloadResponse;
+
+        if (preloadResp) {
+          return preloadResp;
+        }
+
+        const networkResp = await fetch(event.request);
+        return networkResp;
+      } catch (error) {
+
+        const cache = await caches.open(CACHE);
+        const cachedResp = await cache.match(offlineFallbackPage);
+        return cachedResp;
+      }
+    })());
+  }
+});
